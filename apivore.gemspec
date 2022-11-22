@@ -22,19 +22,8 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'pry', '~> 0'
   s.add_development_dependency 'rake', '~> 10.3'
   s.add_development_dependency 'rspec-rails', '~> 3'
+  s.add_development_dependency 'test-unit', '~> 3'
 
-  # Rails 5 stopped support for ruby < 2.2.2
-  # Hack to support currently suported ruby versions
-  # TODO: remove and explicitly require ruby 2.2.2 as min version in version 2 of apivore
-  if RUBY_VERSION >= '2.2.2'
-    s.add_runtime_dependency 'actionpack', '>= 4', '< 8'
-    s.add_development_dependency 'activesupport', '>= 4', '< 8'
-  else
-    s.add_runtime_dependency 'actionpack', '< 5'
-    s.add_development_dependency 'activesupport', '< 5'
-  end
-
-  if RUBY_VERSION >= '2.2.0'
-    s.add_development_dependency 'test-unit', '~> 3'
-  end
+  s.add_runtime_dependency 'actionpack', '>= 5', '< 8'
+  s.add_development_dependency 'activesupport', '>= 5', '< 8'
 end
