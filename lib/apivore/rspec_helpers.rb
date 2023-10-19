@@ -1,6 +1,7 @@
 require 'apivore/validator'
 require 'apivore/all_routes_tested_validator'
 require 'apivore/custom_schema_validator'
+require "apivore/tested_mappings"
 
 module Apivore
   module RspecHelpers

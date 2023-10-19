@@ -2,8 +2,8 @@ module Apivore
   class SwaggerChecker
     PATH_TO_CHECKER_MAP = {}
 
-    def self.instance_for(path)
-      PATH_TO_CHECKER_MAP[path] ||= new(path)
+    def self.instance_for(path, is_local: false)
+      PATH_TO_CHECKER_MAP[path] ||= new(path, is_local: is_local)
     end
 
     def has_path?(path)
@@ -53,24 +53,40 @@ module Apivore
       @response = response
     end
 
+    def tested_mappings
+      result = {}
+      @swagger.each_response do |path, method, response_code, fragment|
+        next unless untested_mappings.dig(path, method, response_code).nil?
+
+        result[path] ||= {}
+        result[path][method] ||= {}
+        result[path][method][response_code] = fragment
+      end
+
+      JSON.parse(JSON.generate(result))
+    end
+
     attr_reader :response, :swagger, :swagger_path, :untested_mappings
 
     private
 
     attr_reader :mappings
 
-    def initialize(swagger_path)
+    def initialize(swagger_path, is_local: false)
       @swagger_path = swagger_path
-      load_swagger_doc!
+      load_swagger_doc!(is_local: is_local)
       validate_swagger!
       setup_mappings!
     end
 
-    def load_swagger_doc!
-      @swagger = Apivore::Swagger.new(fetch_swagger!)
+    def load_swagger_doc!(is_local: false)
+      @swagger = Apivore::Swagger.new(fetch_swagger!(is_local: is_local))
     end
 
-    def fetch_swagger!
+    def fetch_swagger!(is_local: false)
+      if is_local
+        return JSON.parse(File.read(swagger_path))
+      end
       session = ActionDispatch::Integration::Session.new(Rails.application)
       begin
         session.get(swagger_path)
@@ -89,12 +105,25 @@ module Apivore
       end
     end
 
+    def fetch_tested_mappings!
+      Dir['tmp/apivore/tested_mappings*.json'].each_with_object({}) do |file, hash|
+        hash.deep_merge!(JSON.parse(File.read(file)))
+      end
+    rescue StandardError
+      {}
+    end
+
     def setup_mappings!
       @mappings = {}
+
+      tested_mappings_hash = fetch_tested_mappings!
+
       @swagger.each_response do |path, method, response_code, fragment|
         @mappings[path] ||= {}
         @mappings[path][method] ||= {}
         raise "duplicate" unless @mappings[path][method][response_code].nil?
+        next if tested_mappings_hash.dig(path, method).present? && tested_mappings_hash[path][method].has_key?(response_code)
+
         @mappings[path][method][response_code] = fragment
       end
 
