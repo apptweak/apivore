@@ -70,23 +70,23 @@ module Apivore
 
     private
 
-    attr_reader :mappings
+    attr_reader :mappings, :is_local
 
     def initialize(swagger_path, is_local: false)
       @swagger_path = swagger_path
-      load_swagger_doc!(is_local: is_local)
+      @is_local = is_local
+      load_swagger_doc!
       validate_swagger!
       setup_mappings!
     end
 
-    def load_swagger_doc!(is_local: false)
-      @swagger = Apivore::Swagger.new(fetch_swagger!(is_local: is_local))
+    def load_swagger_doc!
+      @swagger = Apivore::Swagger.new(fetch_swagger!)
     end
 
-    def fetch_swagger!(is_local: false)
-      if is_local
-        return JSON.parse(File.read(swagger_path))
-      end
+    def fetch_swagger!
+      return JSON.parse(File.read(swagger_path)) if is_local
+
       session = ActionDispatch::Integration::Session.new(Rails.application)
       begin
         session.get(swagger_path)
